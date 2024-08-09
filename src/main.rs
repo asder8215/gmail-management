@@ -2,7 +2,7 @@ extern crate google_gmail1 as gmail1;
 extern crate getopts;
 
 use getopts::Options;
-use gmail1::{api::ListMessagesResponse, hyper::client::HttpConnector};
+use gmail1::hyper::client::HttpConnector;
 use gmail1::hyper_rustls::HttpsConnector;
 use gmail1::Error;
 use gmail1::{Gmail, oauth2, hyper, hyper_rustls};
@@ -93,9 +93,9 @@ async fn list_messages() -> HashSet<String> {
 
     // TODO: Find a way to error check on result 
     // assert_eq!(result.status(), StatusCode::);
+
     let messages = messages.messages.unwrap();
     let mut message_set = HashSet::<String>::default();
-
 
     for msg in messages {
         message_set.insert(msg.id.clone().unwrap());
@@ -132,48 +132,48 @@ async fn list_messages() -> HashSet<String> {
 async fn list_messages_by_label(label_id: &str) -> HashSet<String> {
     let hub = create_client().await;
 
-    let (result, messages) = hub
-        .users()
-        .messages_list("me")
-        .add_label_ids(label_id)
-        .add_scope("https://mail.google.com/")
-        .doit()
-        .await
-        .unwrap();
-
-    // TODO: Find a way to error check on result 
-    // assert_eq!(result.status(), StatusCode::);
-    let messages = messages.messages.unwrap();
     let mut message_set = HashSet::<String>::default();
+    let mut fetch_emails = true;
 
+    let (mut result, mut messages) = hub
+            .users()
+            .messages_list("me")
+            .add_label_ids(label_id)
+            .add_scope("https://mail.google.com/")
+            .doit()
+            .await
+            .unwrap();
+    while fetch_emails == true {
 
-    for msg in messages {
-        message_set.insert(msg.id.clone().unwrap());
+        // TODO: Find a way to error check on result 
+        // assert_eq!(result.status(), StatusCode::);
+
+        // println!("{:?}", messages);
+
+        let page_token = messages.next_page_token.clone();
+        // println!("{:?}", &page_token.unwrap());
+
+        let msgs = messages.messages.clone().unwrap();
+
+        for msg in msgs {
+            message_set.insert(msg.id.clone().unwrap());
+        }
+        
+        if page_token == None {
+            fetch_emails = false;
+        }
+        else{
+            (result, messages) = hub
+                    .users()
+                    .messages_list("me")
+                    .page_token(&page_token.unwrap())
+                    .add_label_ids(label_id)
+                    .add_scope("https://mail.google.com/")
+                    .doit()
+                    .await
+                    .unwrap();
+        }
     }
-
-    // Testing how many messages are retrieved and printing it out into the console
-    // let message_count = messages.messages.clone().unwrap().iter().count();
-    // let binding = messages.messages.clone().unwrap();
-    // let message_iter = binding.iter().take(message_count).cloned();
-    // for msg in message_iter {
-    //     println!("{:?}", &msg);
-    //     println!("{:?}", &message_count);
-    //     return;
-    // }
-
-
-    // Further tests to see how the json files look like from the messages
-    // fs::write(
-    //     "test2.json",
-    //     serde_json::to_string_pretty(&messages).unwrap(),
-    // ).unwrap();
-
-    // let (result, msg_retrieved) = hub.users().messages_get("me", "1912fbf6d84f437a").add_scope("https://mail.google.com/").doit().await.unwrap();
-
-    // fs::write(
-    //     "email_test.json",
-    //     serde_json::to_string_pretty(&msg_retrieved).unwrap(),
-    // ).unwrap();
 
     message_set
 }
@@ -182,7 +182,12 @@ async fn list_messages_by_label(label_id: &str) -> HashSet<String> {
 async fn list_labels() -> HashMap<String, String> {
     let hub = create_client().await;
 
-    let (result, labels_list) = hub.users().labels_list("me").doit().await.unwrap();
+    let (result, labels_list) = hub
+            .users()
+            .labels_list("me")
+            .doit()
+            .await
+            .unwrap();
     let labels = labels_list.labels.unwrap();
     // println!("{:?}", &labels);
     let mut label_map = HashMap::<String, String>::default();
@@ -195,17 +200,34 @@ async fn list_labels() -> HashMap<String, String> {
     label_map
 }
 
-// fn do_work(inp: &str, out: Option<String>) {
-//     println!("{}", inp);
-//     match out {
-//         Some(x) => println!("{}", x),
-//         None => println!("No Output"),
-//     }
-// }
+async fn get_label_id(label_name: String) -> Option<String>{
+    // println!("{:?}", &label_name);
+    let label_id = list_labels().await.get(&label_name).cloned();
+    
+    label_id
+}
 
-async fn test(label_name: String) -> Option<String>{
-    println!("{:?}", &label_name);
-    list_labels().await.get(&label_name).cloned()
+async fn trash_messages_from_label(label_name: String){
+    let hub = create_client().await;
+
+    let label_id = get_label_id(label_name).await.clone();
+
+    if label_id == None {
+        println!("Nonexistent label name");
+        process::exit(1);
+    }
+
+    let list_of_msgs = list_messages_by_label(&label_id.unwrap()).await;
+
+    for msg_id in list_of_msgs {
+            let (result, trash_msg) = hub
+                    .users()
+                    .messages_trash("me", &msg_id)
+                    .doit()
+                    .await
+                    .unwrap();
+    }
+
 }
 
 fn print_usage(program: &str, opts: Options) {
@@ -241,10 +263,10 @@ async fn main() {
     if matches.opt_present("d"){
 
         let flag_or_id = matches.opt_str("d");
-        println!("{:?}", flag_or_id.clone().unwrap());
+        // println!("{:?}", flag_or_id.clone().unwrap());
         
         match flag_or_id.clone().unwrap().as_str(){
-            "l" => println!("{:?}", test(matches.free.join(" ")).await.unwrap()),
+            "l" => {trash_messages_from_label(matches.free.join(" ")).await},
             _ => println!("It's something else!")
         };
     };
