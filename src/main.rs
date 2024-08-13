@@ -8,9 +8,8 @@ use gmail1::Error;
 use gmail1::{Gmail, oauth2, hyper, hyper_rustls};
 use std::collections::{HashMap, HashSet};
 use std::fs;
-use std::env;
 use std::process;
-
+use clap::Parser;
 
 
 /// Attempts to authenticate and connect to user's email; returns the connected client on success
@@ -235,41 +234,89 @@ fn print_usage(program: &str, opts: Options) {
     print!("{}", opts.usage(&brief));
 }
 
+/// Gmail management program that provides options in interacting with your gmail
+#[derive(Parser, Debug)]
+#[command(about, long_about = None)]
+struct Args {
+    #[command(subcommand)]
+    delete: TrashCommand,
+
+    /// List all labels in authenticated gmail
+    #[arg(short, long)]
+    label_list: bool,
+}
+
+
+#[derive(Parser, Debug)]
+enum TrashCommand {
+    /// Trashes email within specified labels or specified messages in authenticated email
+    Trash{
+        /// Trash all emails within specified labels
+        #[arg(long, value_name="LABEL_NAMES")]
+        labels: Option<Vec<String>>,
+        /// Trash all messages within specified message ids
+        #[arg(long, value_name="MESSAGE_ID")]
+        messages: Option<Vec<String>>
+    }
+}
+
+impl TrashCommand {
+    fn retrieve_labels(&self) -> &Option<Vec<String>> {
+        match self {
+            Self::Trash { labels, ..} => labels,
+        }
+    }
+    fn retrieve_messages(&self) -> &Option<Vec<String>> {
+        match self {
+            Self::Trash { messages, ..} => messages,
+        }
+    }
+}
+
+
 #[tokio::main]
 async fn main() {
     
     // println!("{:?}", list_labels().await);
 
-    let args: Vec<String> = env::args().map(|x| x.to_string()).collect();
-    let ref program = args[0];
+    // let args: Vec<String> = env::args().map(|x| x.to_string()).collect();
+    // let ref program = args[0];
 
-    let mut opts = Options::new();
-    opts.optflag("h", "help", "Display help message.");
-    opts.optopt("d", "delete", "Delete emails given an id", "ID");
-    // opts.optopt("l", "delete-label", "Deletes all emails from this label", "Label ID");
+    // let mut opts = Options::new();
+    // opts.optflag("h", "help", "Display help message.");
+    // opts.optopt("d", "delete", "Delete emails given an id", "[-l] <Label Name | Message ID>");
+    // opts.optflag("l", "labels", "List all labels within the authenticated email");
 
-    let matches = match opts.parse(&args[1..]){
-        Ok(m) => { m }
-        Err(f) => {
-            println!("{}", f);
-            process::exit(1);
-        }
-    };
+    // let matches = match opts.parse(&args[1..]){
+    //     Ok(m) => { m }
+    //     Err(f) => {
+    //         println!("{}", f);
+    //         process::exit(1);
+    //     }
+    // };
 
-    if matches.opt_present("h"){
-        print_usage(&program, opts);
-        return;
-    }
-    if matches.opt_present("d"){
+    // if matches.opt_present("h"){
+    //     print_usage(&program, opts);
+    //     return;
+    // }
+    // if matches.opt_present("d"){
+    //     // let flag_or_id = matches.opt_str("d");
+    //     // println!("{:?}", flag_or_id.clone().unwrap());
+    //     // println!("{:?}", matches.opt_str("d").clone().unwrap());
+    //     println!("{:?}", args);
+    //     // println!("Argument {:?}, Position {:?}", matches.opt_strs("d"), matches.free);
+    //     // match flag_or_id.clone().unwrap().as_str(){
+    //     //     "l" => {trash_messages_from_label(matches.free.join(" ")).await},
+    //     //     _ => println!("It's something else!")
+    //     // };
+    // }
+    // if matches.opt_present("l"){
 
-        let flag_or_id = matches.opt_str("d");
-        // println!("{:?}", flag_or_id.clone().unwrap());
-        
-        match flag_or_id.clone().unwrap().as_str(){
-            "l" => {trash_messages_from_label(matches.free.join(" ")).await},
-            _ => println!("It's something else!")
-        };
-    };
+    // }
+
+    let args = Args::parse();
+
+    println!("Args: {:?},  Trash Labels: {:?}, Trash Messages: {:?}, Label-Flag: {:?}", args, args.delete.retrieve_labels(), args.delete.retrieve_messages(), args.label_list);
 
     return;
 }
