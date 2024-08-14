@@ -236,43 +236,41 @@ fn print_usage(program: &str, opts: Options) {
 
 /// Gmail management program that provides options in interacting with your gmail
 #[derive(Parser, Debug)]
-#[command(about, long_about = None)]
 struct Args {
     #[command(subcommand)]
-    delete: TrashCommand,
-
-    /// List all labels in authenticated gmail
-    #[arg(short, long)]
-    label_list: bool,
+    cmds: Commands,
 }
 
 
-#[derive(Parser, Debug)]
-enum TrashCommand {
-    /// Trashes email within specified labels or specified messages in authenticated email
+
+#[derive(Parser, Debug, Clone, PartialEq)]
+enum Commands {
+    /// Trashes email within specified label(s) or specified message(s) in authenticated email
     Trash{
-        /// Trash all emails within specified labels
-        #[arg(long, value_name="LABEL_NAMES")]
+        /// Trash all emails within specified label(s)
+        #[arg(short, long, value_name="LABEL_NAMES")]
         labels: Option<Vec<String>>,
-        /// Trash all messages within specified message ids
-        #[arg(long, value_name="MESSAGE_ID")]
-        messages: Option<Vec<String>>
-    }
+        /// Trash all messages within specified message id(s)
+        #[arg(short, long, value_name="MESSAGE_ID")]
+        msgs: Option<Vec<String>>
+    },
+    /// Sends an email to specified email address(es)
+    Send {
+        /// The email addresses you want to send an email to
+        #[arg(short, long, value_name="EMAIL_ADDR")]
+        to: Vec<String>,
+    
+        /// The subject of the email
+        #[arg(short, long, value_name="SUBJECT")]
+        subject: Option<String>,
+    
+        /// The description of the email
+        #[arg(short, long, alias="desc", value_name="DESCRIPTION")]
+        description: Option<String>
+    },
+    /// List all labels within authenticated email
+    Labels,
 }
-
-impl TrashCommand {
-    fn retrieve_labels(&self) -> &Option<Vec<String>> {
-        match self {
-            Self::Trash { labels, ..} => labels,
-        }
-    }
-    fn retrieve_messages(&self) -> &Option<Vec<String>> {
-        match self {
-            Self::Trash { messages, ..} => messages,
-        }
-    }
-}
-
 
 #[tokio::main]
 async fn main() {
@@ -315,8 +313,19 @@ async fn main() {
     // }
 
     let args = Args::parse();
+    println!("Args: {args:?}");
 
-    println!("Args: {:?},  Trash Labels: {:?}, Trash Messages: {:?}, Label-Flag: {:?}", args, args.delete.retrieve_labels(), args.delete.retrieve_messages(), args.label_list);
+    // match args.cmds {
+    //     Commands::Trash
+    // }
+    
+    // if trash != None{
+    //     let trash = trash.unwrap();
+    //     println!("Args: {:?},  Trash Labels: {:?}, Trash Messages: {:?}, Label-Flag: {:?}", args, trash.retrieve_labels(), trash.retrieve_messages(), args.label_list);
+    // }
+    // else {
+    //     println!("Args: {:?}, Label-Flag: {:?}", args, args.label_list);
+    // }
 
     return;
 }
