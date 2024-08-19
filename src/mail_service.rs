@@ -431,9 +431,9 @@ pub async fn add_msgs(
         let mut msg_id_bts_lock = msg_ids.lock().await;
         match msg_id_bts_lock.pop_first() {
             Some(msg_id) => {
-                counter += 1;
                 // enqueue the msg_id
                 if let Some(msg_id) = msg_id {
+                    counter += 1;
                     msg_id_rb.enqueue(msg_id).await;
                 }
                 // item is None here
