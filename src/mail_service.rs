@@ -9,8 +9,10 @@ use lettre::transport::smtp::authentication::Credentials;
 use lettre::Message as email;
 use lettre::{SmtpTransport, Transport};
 use serde_json::json;
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{self, read};
+use std::sync::Arc;
+use tokio::sync::Mutex as tokio_mutex;
 
 use crate::ringbuffer::MultiThreadedRingBuffer;
 
@@ -225,8 +227,11 @@ pub async fn send_message(
 }
 
 #[allow(dead_code)]
-/// Return a HashSet of all email message ids. Unused for now in scheme of program, but good for debugging purposes.
-pub async fn list_messages(hub: &Gmail<HttpsConnector<HttpConnector>>) -> Option<HashSet<String>> {
+/// Return a BTreeSet of all email message ids. Unused for now in scheme of program, but good for debugging purposes.
+pub async fn list_messages(
+    hub: &Gmail<HttpsConnector<HttpConnector>>,
+    msg_id_bts: Arc<tokio_mutex<BTreeSet<Option<String>>>>,
+) {
     let result = hub
         .users()
         .messages_list("me")
@@ -234,34 +239,32 @@ pub async fn list_messages(hub: &Gmail<HttpsConnector<HttpConnector>>) -> Option
         .doit()
         .await;
 
-    let mut _res;
-    let messages;
+    let (mut _res, messages);
     // Displays whether the result indicates a successful connection or a failed one
     match result {
         Err(e) => {
             println!("{}", e);
-            return None;
+            return;
         }
         Ok(res) => {
             (_res, messages) = res;
         }
     };
 
-    let mut message_set = HashSet::<String>::default();
-
-    for msg in messages.messages.as_ref().unwrap() {
-        message_set.insert(msg.id.clone().unwrap());
+    if let Some(gmail_messages) = messages.messages.to_owned() {
+        for msg in gmail_messages {
+            let mut msg_id_bts_lock = msg_id_bts.lock().await;
+            msg_id_bts_lock.insert(Some(msg.id.clone().unwrap()));
+        }
     }
-
-    Some(message_set)
 }
 
-/// Return a HashSet of all email message id by label id
+/// Modifies the given Arc tokio_mutex BTreeSet with all email message id from label id
 async fn list_messages_by_label(
     hub: &Gmail<HttpsConnector<HttpConnector>>,
     label_id: &str,
-) -> Result<HashSet<String>, Box<dyn std::error::Error>> {
-    let mut message_set = HashSet::<String>::default();
+    msg_id_bts: Arc<tokio_mutex<BTreeSet<Option<String>>>>,
+) {
     let mut fetch_emails = true;
 
     let result = hub
@@ -270,14 +273,25 @@ async fn list_messages_by_label(
         .add_label_ids(label_id)
         .add_scope("https://mail.google.com/")
         .doit()
-        .await?;
+        .await;
 
-    let (mut _res, mut messages) = result;
+    let (mut _res, mut messages);
+    // Displays whether the result indicates a successful connection or a failed one
+    match result {
+        Err(e) => {
+            println!("{}", e);
+            return;
+        }
+        Ok(res) => {
+            (_res, messages) = res;
+        }
+    };
 
     while fetch_emails {
         if let Some(gmail_messages) = messages.messages.to_owned() {
             for msg in gmail_messages {
-                message_set.insert(msg.id.clone().unwrap());
+                let mut msg_id_bts_lock = msg_id_bts.lock().await;
+                msg_id_bts_lock.insert(Some(msg.id.clone().unwrap()));
             }
         }
 
@@ -295,7 +309,7 @@ async fn list_messages_by_label(
             match result {
                 Err(e) => {
                     println!("{}", e);
-                    return Ok(message_set);
+                    return;
                 }
                 Ok(res) => {
                     (_res, messages) = res;
@@ -305,8 +319,6 @@ async fn list_messages_by_label(
             fetch_emails = false;
         }
     }
-
-    Ok(message_set)
 }
 
 /// Return a BTreeMap of label names and ids within user's email
@@ -345,7 +357,7 @@ pub async fn get_label_id(
 pub async fn trash_messages_from_labels(
     hub: &Gmail<HttpsConnector<HttpConnector>>,
     label_names: Vec<String>,
-    msg_id_rb: &MultiThreadedRingBuffer<String, 1024>,
+    msg_id_bts: Arc<tokio_mutex<BTreeSet<Option<String>>>>,
 ) {
     for label in label_names {
         let label_id = get_label_id(hub, &label).await;
@@ -354,13 +366,7 @@ pub async fn trash_messages_from_labels(
             println!("{} is a nonexistent label name", label);
             continue;
         }
-
-        let list_of_msgs = list_messages_by_label(hub, &label_id.unwrap()).await;
-        if let Ok(list_of_msgs) = list_of_msgs {
-            for msg_id in &list_of_msgs {
-                msg_id_rb.enqueue(msg_id.to_string()).await;
-            }
-        }
+        list_messages_by_label(hub, &label_id.unwrap(), msg_id_bts.clone()).await;
     }
 }
 
@@ -368,12 +374,13 @@ pub async fn trash_messages_from_labels(
 pub async fn trash_messages_from_id(
     hub: &Gmail<HttpsConnector<HttpConnector>>,
     msg_ids: Vec<String>,
-    msg_id_rb: &MultiThreadedRingBuffer<String, 1024>,
+    msg_id_bts: Arc<tokio_mutex<BTreeSet<Option<String>>>>,
 ) {
     for msg_id in msg_ids {
         // The if statement is intentional in order to check if the msg_id points to a valid message in user's gmail
         if let Ok(_msg) = get_messages(hub, &msg_id).await {
-            msg_id_rb.enqueue(msg_id).await;
+            let mut msg_id_bts_lock = msg_id_bts.lock().await;
+            msg_id_bts_lock.insert(Some(msg_id));
         } else {
             println!("{} is a nonexistent message id", msg_id);
             continue;
@@ -381,11 +388,11 @@ pub async fn trash_messages_from_id(
     }
 }
 
-/// Worker threads in the trash command utilize this method to trash messages
-/// within user's gmail
+/// Dequerer threads in the trash command utilize this method to grab the msg id
+/// from the ring buffer and trash it
 pub async fn trash_msgs(
     hub: &Gmail<HttpsConnector<HttpConnector>>,
-    msg_id_rb: &MultiThreadedRingBuffer<String, 1024>,
+    msg_id_rb: &MultiThreadedRingBuffer<String>,
 ) -> usize {
     let mut counter: usize = 0;
     loop {
@@ -408,6 +415,39 @@ pub async fn trash_msgs(
             }
         }
     }
+    counter
+}
+
+/// Enquerer threads from the trash command use this method to fetch msg ids
+/// as it's being added to the BTS and enqueues it to the ring buffer
+pub async fn add_msgs(
+    msg_ids: Arc<tokio_mutex<BTreeSet<Option<String>>>>,
+    msg_id_rb: &MultiThreadedRingBuffer<String>,
+) -> usize {
+    let mut counter: usize = 0;
+
+    loop {
+        // Lock the bts so that you can read popped item and remove it from the bts (read/write lock)
+        let mut msg_id_bts_lock = msg_ids.lock().await;
+        match msg_id_bts_lock.pop_first() {
+            Some(msg_id) => {
+                counter += 1;
+                // enqueue the msg_id
+                if let Some(msg_id) = msg_id {
+                    msg_id_rb.enqueue(msg_id).await;
+                }
+                // item is None here
+                else {
+                    break;
+                }
+            }
+            // Unless the item explicitly given to me is None, keep continuing on popping the msg_id_bts
+            None => {
+                continue;
+            }
+        }
+    }
+    // return
     counter
 }
 

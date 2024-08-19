@@ -5,7 +5,8 @@ pub mod ringbuffer;
 use clap::Parser;
 use mail_service as mail;
 use ringbuffer::MultiThreadedRingBuffer;
-use std::fmt::Debug;
+use std::{collections::BTreeSet, fmt::Debug, sync::Arc};
+use tokio::sync::Mutex as tokio_mutex;
 
 /// Email management program that provides options in interacting with your gmail and send emails through a mail sending service
 #[derive(Parser, Debug)]
@@ -94,6 +95,8 @@ enum Commands {
 #[tokio::main]
 async fn main() {
     static MSG_ID_RB: MultiThreadedRingBuffer<String, 1024> = MultiThreadedRingBuffer::new();
+    let msg_id_bts: Arc<tokio_mutex<BTreeSet<Option<String>>>> =
+        Arc::new(tokio_mutex::new(BTreeSet::new()));
     let hub = mail::create_client().await.unwrap();
     let args = Args::parse();
 
@@ -106,32 +109,48 @@ async fn main() {
             threads_num,
         } => {
             // Thread reference: https://doc.rust-lang.org/std/thread/
-            let mut threads: Vec<tokio::task::JoinHandle<usize>> =
-                Vec::with_capacity(threads_num.try_into().unwrap());
+            let mut dequerer_threads: Vec<tokio::task::JoinHandle<usize>> =
+                Vec::with_capacity((threads_num * 2).try_into().unwrap());
+            let mut enquerer_threads: Vec<tokio::task::JoinHandle<usize>> =
+                Vec::with_capacity((threads_num * 2).try_into().unwrap());
 
             for _ in 0..threads_num {
                 let hub_clone = hub.clone();
-                let handler =
+                let msg_id_bts_clone = msg_id_bts.clone();
+                let dequeue_thread =
                     tokio::spawn(async move { mail::trash_msgs(&hub_clone, &MSG_ID_RB).await });
-                threads.push(handler);
+                let enqueue_thread =
+                    tokio::spawn(async move { mail::add_msgs(msg_id_bts_clone, &MSG_ID_RB).await });
+                dequerer_threads.push(dequeue_thread);
+                enquerer_threads.push(enqueue_thread);
             }
 
-            // println!("Attempting to trash from inbox");
             if !labels.is_empty() {
-                mail::trash_messages_from_labels(&hub, labels, &MSG_ID_RB).await;
+                mail::trash_messages_from_labels(&hub, labels, msg_id_bts.clone()).await;
             }
             if !msgs.is_empty() {
-                mail::trash_messages_from_id(&hub, msgs, &MSG_ID_RB).await;
+                mail::trash_messages_from_id(&hub, msgs, msg_id_bts.clone()).await;
             }
 
             MSG_ID_RB.poison().await;
 
-            let mut messages_taken: usize = 0;
-            while let Some(curr_thread) = threads.pop() {
-                messages_taken += curr_thread.await.unwrap();
+            for _ in 0..threads_num {
+                let mut msg_id_bts_lock = msg_id_bts.lock().await;
+                msg_id_bts_lock.insert(None);
             }
 
-            println!("Taken {} messages!", messages_taken);
+            let mut messages_trashed: usize = 0;
+            let mut messages_received: usize = 0;
+            while let Some(curr_thread) = dequerer_threads.pop() {
+                messages_trashed += curr_thread.await.unwrap();
+            }
+
+            while let Some(curr_thread) = enquerer_threads.pop() {
+                messages_received += curr_thread.await.unwrap();
+            }
+
+            println!("Received {} messages!", messages_received);
+            println!("Trashed {} messages!", messages_trashed);
         }
         Commands::Send {
             username,
