@@ -126,10 +126,10 @@ async fn main() {
             }
 
             if !labels.is_empty() {
-                mail::trash_messages_from_labels(&hub, labels, msg_id_bts.clone()).await;
+                mail::add_msg_ids_from_labels(&hub, labels, msg_id_bts.clone()).await;
             }
             if !msgs.is_empty() {
-                mail::trash_messages_from_id(&hub, msgs, msg_id_bts.clone()).await;
+                mail::add_msg_ids_from_ids(&hub, msgs, msg_id_bts.clone()).await;
             }
 
             MSG_ID_RB.poison().await;

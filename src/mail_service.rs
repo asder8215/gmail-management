@@ -354,7 +354,7 @@ pub async fn get_label_id(
 }
 
 /// Trashes all emails from given labels
-pub async fn trash_messages_from_labels(
+pub async fn add_msg_ids_from_labels(
     hub: &Gmail<HttpsConnector<HttpConnector>>,
     label_names: Vec<String>,
     msg_id_bts: Arc<tokio_mutex<BTreeSet<Option<String>>>>,
@@ -371,7 +371,7 @@ pub async fn trash_messages_from_labels(
 }
 
 /// Trash emails from provided message ids
-pub async fn trash_messages_from_id(
+pub async fn add_msg_ids_from_ids(
     hub: &Gmail<HttpsConnector<HttpConnector>>,
     msg_ids: Vec<String>,
     msg_id_bts: Arc<tokio_mutex<BTreeSet<Option<String>>>>,
