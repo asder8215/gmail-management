@@ -12,7 +12,7 @@ So learning Rust was on my mind firstly. Initially, I was going through the exer
 
 Note: anything with [] brackets are required, <> brackets are optionals, & | symbols means or one of these (in `send` command, you need to at least specify a to, cc, or bcc address, but it's not necessary to use all three)
 
-- `trash [LABELS|MSG_IDS]`: allows user to trash all emails in specific gmail label(s) or given a series of message IDs
+- `trash [LABELS|MSG_IDS] <NUM_THREADS>`: allows user to trash all emails in specific gmail label(s) or given a series of message IDs optionally
     - This command is multithreaded allowing users to specify between 1-10 threads respectively for enqueuing and dequeuing messages to trash emails from their inbox. As a result, the concurrency of fetching the message ids of the email and trashing the email through Gmail API allows you to clean your inbox efficiently.
     - Note: Using the --msgs (m) and specifying the message IDs will be reworked in the future to requiring the user to either call the `find` or `filter` command (once it's implemented) so that the filter/find command can provide all the filtered messages that the user wants to be deleted (since it's not possible to manually find message ids of an email; the Message ID in the gmail 'Show Original' is not the message id that's sought for) 
 - `labels`: allows user to see all labels within their gmail
