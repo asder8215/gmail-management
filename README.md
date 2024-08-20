@@ -31,7 +31,7 @@ Note: anything with [] brackets are required, <> brackets are optionals, & | sym
 
 ## Download
 
-Available releases can be downloaded for your platform of choice on the [Releases](todo!) page.
+Available releases can be downloaded for your platform of choice on the [TO BE LINKED](todo!) page.
 
 ## Building & Running
 Because an OAuth consent screen is necessary on first use of this program to access your Gmail, you need to generate a Client ID through Google Cloud console. Follow these [Get your Google API client ID](https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid) steps that Google provides to generate this Client ID. Make sure to enable the Gmail API in the Google API project that you create. Once you have generated and downloaded the json file containing the Client ID, rename the file to `client_secret.json` and you're good to go! 
