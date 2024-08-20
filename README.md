@@ -10,28 +10,28 @@ So learning Rust was on my mind firstly. Initially, I was going through the exer
 
 ## Features
 
-Note: anything with [] brackets are required, <> brackets are optionals, & | symbols means or one of these (in `send` command, you need to at least specify a to, cc, or bcc address, but it's not necessary to use all three)
+Note: anything with [] brackets are optionals, <> brackets are required, | symbols means or one of these (in `send` command, you need to at least specify a to, cc, or bcc address, but it's not necessary to use all three)
 
-- `trash [LABELS|MSG_IDS] <NUM_THREADS>`: allows user to trash all emails in specific gmail label(s) or given a series of message IDs optionally
+- `trash <LABELS|MSG_IDS> [NUM_THREADS]`: allows user to trash all emails in specific gmail label(s) or given a series of message IDs optionally
     - This command is multithreaded allowing users to specify between 1-10 threads respectively for enqueuing and dequeuing messages to trash emails from their inbox. As a result, the concurrency of fetching the message ids of the email and trashing the email through Gmail API allows you to clean your inbox efficiently.
     - Note: Using the --msgs (m) and specifying the message IDs will be reworked in the future to requiring the user to either call the `find` or `filter` command (once it's implemented) so that the filter/find command can provide all the filtered messages that the user wants to be deleted (since it's not possible to manually find message ids of an email; the Message ID in the gmail 'Show Original' is not the message id that's sought for) 
 - `labels`: allows user to see all labels within their gmail
-- `send [FROM] [TO|CC|BCC] <SUBJECT> <DESCRIPTION> <USER> <PASS> <ATTACHMENT> [RELAY]`: allows user to send an email with attachments through a mail service that uses SMTP
+- `send <FROM> <TO|CC|BCC> [SUBJECT] [DESCRIPTION] [USER] [PASS] [ATTACHMENT] <RELAY>`: allows user to send an email with attachments through a mail service that uses SMTP
     - In order to use gmail as your relay, you must make sure your SMTP relay service settings are configured properly. This requires you to sign in with an Google admin account. If everything is set up appropriately, your relay would be `smtp.gmail.com:587` and you would put your gmail user in the username flag & gmail password in the password flag. See [Google's SMTP routing](https://support.google.com/a/answer/2956491?hl=en) for more info.
     - Alternatively, you can use other third party mail services that send emails via SMTP using TLS (e.g. Mailtrap).
     - With attachment option, you need to specify the file you want to attach to the email using the file path relative to where you run this program. 
     - For convenience, a `credentials.json` is stored locally on your PC when you login to the relay host for the first time. `credentials.json` stores the last username and password you logged in with that specific relay so that the next time you try to use the `send` command with the same relay, it's not necessary for you to put values in the --username (-u) & --password (-p) options
-- `help <COMMAND>`: list all the commands provided by the program with a small blurb of what they do.
+- `help [COMMAND]`: list all the commands provided by the program with a small blurb of what they do.
     - Specifying a command (e.g. `help send`) allows users to see more information about what the command takes and what each of the options in the command are meant for.
 
 ## Future Additions
 
-- `find [PATTERN] <LABELS>` command that will allow users to provide a pattern to look for within the user's entire gmail or specific labels in the gmail. In return, a json file containing all the resultant messages will be created. 
-- `filter [FROM|TO|SUBJECT|DESCRIPTION|ETC flags to be thought about] <LABELS>`command that will allow users to provide a more specific series of pattern to look for within the user's gmail or labels. In return, a json file containing all the resultant messages will be created.
+- `find <PATTERN> [LABELS]` command that will allow users to provide a pattern to look for within the user's entire gmail or specific labels in the gmail. In return, a json file containing all the resultant messages will be created. 
+- `filter <FROM|TO|SUBJECT|DESCRIPTION|ETC flags to be thought about> [LABELS]`command that will allow users to provide a more specific series of pattern to look for within the user's gmail or labels. In return, a json file containing all the resultant messages will be created.
 
 ## Download
 
-Available releases can be downloaded for your platform of choice on the [TO BE LINKED](todo!) page.
+You can download this program through the [Releases](https://github.com/asder8215/gmail-management/releases) page.
 
 ## Building & Running
 Because an OAuth consent screen is necessary on first use of this program to access your Gmail, you need to generate a Client ID through Google Cloud console. Follow these [Get your Google API client ID](https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid) steps that Google provides to generate this Client ID. Make sure to enable the Gmail API in the Google API project that you create. Once you have generated and downloaded the json file containing the Client ID, rename the file to `client_secret.json` and you're good to go! 
@@ -40,7 +40,7 @@ You may want to also put the Google Cloud Platform project from testing into pro
 
 Run `cargo build` to build the project and `cargo run -- [command]` to run the project.
 
-If this error, `“failed to run custom build command for `aws-lc-sys`”` occurs, it's possible that you may need to install `nasm` & `cmake`. If so, you can follow this [Medium article](https://medium.com/@rrnazario/rust-how-to-fix-failed-to-run-custom-build-command-for-aws-lc-sys-on-windows-c3bd2405ac6f) in order to fix the issue.
+If this error, `“failed to run custom build command for aws-lc-sys”` occurs, it's possible that you may need to install `nasm` & `cmake`. If so, you can follow this [Medium article](https://medium.com/@rrnazario/rust-how-to-fix-failed-to-run-custom-build-command-for-aws-lc-sys-on-windows-c3bd2405ac6f) in order to fix the issue.
 
 ## Contribution
 
