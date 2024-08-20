@@ -190,7 +190,7 @@ pub async fn send_message(
     let creds: Credentials;
     if let (Some(username), Some(password)) = (username, password) {
         creds = Credentials::new(username.to_owned(), password.to_owned());
-        let credentials_json = r#json!({"user": username, "pass": password});
+        let credentials_json = r#json!({relay.clone(): {"user": username, "pass": password}});
         fs::write(
             "credentials.json",
             serde_json::to_string_pretty(&credentials_json).unwrap(),
@@ -199,12 +199,10 @@ pub async fn send_message(
         let cred_file = fs::File::open("credentials.json").expect("File should open read only");
         let cred_json: serde_json::Value =
             serde_json::from_reader(cred_file).expect("JSON was not well-formatted");
-        let username = cred_json
-            .get("user")
+        let relay_val = cred_json
+            .get(relay.clone())
             .ok_or("Couldn't get user from credentials.json")?;
-        let password = cred_json
-            .get("pass")
-            .ok_or("Couldn't get pass from credentials.json")?;
+        let (username, password) = (relay_val.get("user").ok_or("Couldn't get user from credentials.json")?, relay_val.get("pass").ok_or("Couldn't get user from credentials.json")?);
         creds = Credentials::new(
             username.as_str().unwrap().to_owned(),
             password.as_str().unwrap().to_owned(),
