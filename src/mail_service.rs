@@ -14,6 +14,7 @@ use std::fs::{self, read};
 use std::sync::Arc;
 use tokio::sync::Mutex as tokio_mutex;
 
+use crate::cmd_args::Send;
 use crate::ringbuffer::MultiThreadedRingBuffer;
 
 /// Attempts to authenticate and connect to user's email; returns the connected client on success
@@ -88,28 +89,17 @@ pub async fn get_messages(
 /// Storing and using credentials inspired by this [Stackoverflow post](https://stackoverflow.com/questions/30292752/how-do-i-parse-a-json-file)
 ///
 /// mime_guess library used to have a flexible way of resolving content-type of the attachments to an email
-pub async fn send_message(
-    username: Option<String>,
-    password: Option<String>,
-    relay: String,
-    from: String,
-    to_names: Vec<String>,
-    cc_names: Vec<String>,
-    bcc_names: Vec<String>,
-    subject: Option<String>,
-    desc: Option<String>,
-    attachments: Option<Vec<String>>,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn send_message(send_info: Send) -> Result<(), Box<dyn std::error::Error>> {
     let mut email = email::builder();
 
     // Setting up to, from, cc, bcc, subject field
-    let from = from.parse::<Mailbox>()
+    let from = send_info.from.parse::<Mailbox>()
         .map_err(|e|
-            format!("The address {} in from field is not parsable. Check if you have correctly type the email address.\nError Received: {}", from, e)
+            format!("The address {} in from field is not parsable. Check if you have correctly type the email address.\nError Received: {}", send_info.from, e)
         )?;
     email = email.from(from);
 
-    for to in to_names {
+    for to in send_info.to {
         let to = to.parse::<Mailbox>()
             .map_err(|e|
                 format!("The address {} in to field is not parsable. Check if you have correctly type the email address.\nError Received: {}", to, e)
@@ -117,7 +107,7 @@ pub async fn send_message(
         email = email.to(to);
     }
 
-    for cc in cc_names {
+    for cc in send_info.cc {
         let cc = cc.parse::<Mailbox>()
             .map_err(|e|
                 format!("The address {} in cc field is not parsable. Check if you have correctly type the email address.\nError Received: {}", cc, e)
@@ -125,7 +115,7 @@ pub async fn send_message(
         email = email.cc(cc);
     }
 
-    for bcc in bcc_names {
+    for bcc in send_info.bcc {
         let bcc = bcc.parse::<Mailbox>()
             .map_err(|e|
                 format!("The address {} in bcc field is not parsable. Check if you have correctly type the email address.\nError Received: {}", bcc, e)
@@ -133,7 +123,7 @@ pub async fn send_message(
         email = email.bcc(bcc);
     }
 
-    if let Some(subject) = subject {
+    if let Some(subject) = send_info.subject {
         email = email.subject(subject);
     }
 
@@ -141,7 +131,7 @@ pub async fn send_message(
     // need to check mime type of the attachment to set up right content_type in email
     // if attachment isn't able to be mime_guessed error on email
     let desc_multipart;
-    if let Some(desc) = desc {
+    if let Some(desc) = send_info.description {
         desc_multipart = MultiPart::mixed().multipart(
             MultiPart::alternative()
                 .singlepart(SinglePart::plain(desc.clone()))
@@ -160,7 +150,7 @@ pub async fn send_message(
     }
 
     let mut attachment_singleparts: Vec<SinglePart> = Vec::new();
-    if let Some(attachments) = attachments {
+    if let Some(attachments) = send_info.attachment {
         for attachment in attachments {
             let attachment_file = read(attachment.clone())?;
             let attachment_body = Body::new(attachment_file);
@@ -188,9 +178,10 @@ pub async fn send_message(
     // Stores the last used username and password in credentials.json so it's not necessary for
     // users of this program to relogin
     let creds: Credentials;
-    if let (Some(username), Some(password)) = (username, password) {
+    if let (Some(username), Some(password)) = (send_info.username, send_info.password) {
         creds = Credentials::new(username.to_owned(), password.to_owned());
-        let credentials_json = r#json!({relay.clone(): {"user": username, "pass": password}});
+        let credentials_json =
+            r#json!({send_info.relay.clone(): {"user": username, "pass": password}});
         fs::write(
             "credentials.json",
             serde_json::to_string_pretty(&credentials_json).unwrap(),
@@ -200,9 +191,16 @@ pub async fn send_message(
         let cred_json: serde_json::Value =
             serde_json::from_reader(cred_file).expect("JSON was not well-formatted");
         let relay_val = cred_json
-            .get(relay.clone())
+            .get(send_info.relay.clone())
             .ok_or("Couldn't get user from credentials.json")?;
-        let (username, password) = (relay_val.get("user").ok_or("Couldn't get user from credentials.json")?, relay_val.get("pass").ok_or("Couldn't get user from credentials.json")?);
+        let (username, password) = (
+            relay_val
+                .get("user")
+                .ok_or("Couldn't get user from credentials.json")?,
+            relay_val
+                .get("pass")
+                .ok_or("Couldn't get user from credentials.json")?,
+        );
         creds = Credentials::new(
             username.as_str().unwrap().to_owned(),
             password.as_str().unwrap().to_owned(),
@@ -210,7 +208,7 @@ pub async fn send_message(
     }
 
     // Open a secure connection to the SMTP server using STARTTLS
-    let mailer = SmtpTransport::starttls_relay(&relay)
+    let mailer = SmtpTransport::starttls_relay(&send_info.relay)
         .unwrap() // Unwrap the Result, panics in case of error
         .credentials(creds) // Provide the credentials to the transport
         .build(); // Construct the transport
