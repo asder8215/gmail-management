@@ -1,5 +1,4 @@
 use clap::{Parser, Subcommand};
-use is_empty::IsEmpty;
 use serde::{self, Deserialize, Serialize};
 use std::fmt::Debug;
 
@@ -206,133 +205,133 @@ pub enum FilterCmd {
 
 /// Filters messages in authenticated email for trashing purposes
 /// See Google's "Refine searches in Gmail" for more info on email search query
-#[derive(Parser, Debug, Clone, Serialize, Deserialize, IsEmpty)]
+#[derive(Parser, Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Filter {
     /// Messages that contain these specific word(s) or phrase(s)
-    #[arg(short, long, value_name = "WORDS")]
+    #[arg(short, long, value_name = "WORDS", groups=["manual", "query"], required_unless_present_any=["text_file", "json_file", "query"])]
     #[serde(default)]
     pub words: Option<Vec<String>>,
 
     /// Messages with these specific from address(es)
-    #[arg(long, value_name = "FROM")]
+    #[arg(long, value_name = "FROM", groups=["manual", "query"], required_unless_present_any=["text_file", "json_file", "query"])]
     #[serde(default)]
     pub from: Option<Vec<String>>,
 
     /// Messages with these specific to address(es)
-    #[arg(long, value_name = "TO")]
+    #[arg(long, value_name = "TO", groups=["manual", "query"], required_unless_present_any=["text_file", "json_file", "query"])]
     #[serde(default)]
     pub to: Option<Vec<String>>,
 
     /// Messages with these specific cc address(es)
-    #[arg(long, value_name = "CC")]
+    #[arg(long, value_name = "CC", groups=["manual", "query"], required_unless_present_any=["text_file", "json_file", "query"])]
     #[serde(default)]
     pub cc: Option<Vec<String>>,
 
     /// Messages with these specific bcc address(es)
-    #[arg(long, value_name = "BCC")]
+    #[arg(long, value_name = "BCC", groups=["manual", "query"], required_unless_present_any=["text_file", "json_file", "query"])]
     #[serde(default)]
     pub bcc: Option<Vec<String>>,
 
     /// Messages with that contain these subject(s)
-    #[arg(long, value_name = "SUBJECT")]
+    #[arg(long, value_name = "SUBJECT", groups=["manual", "query"], required_unless_present_any=["text_file", "json_file", "query"])]
     #[serde(default)]
     pub subject: Option<Vec<String>>,
 
     /// Messages that do not contain these word(s)
-    #[arg(short, long, value_name = "REMOVE-WORD")]
+    #[arg(short, long, value_name = "REMOVE-WORD", groups=["manual", "query"], required_unless_present_any=["text_file", "json_file", "query"])]
     #[serde(default)]
     pub remove_words: Option<Vec<String>>,
 
     /// Messages with specific label(s)
-    #[arg(long, value_name = "LABEL_NAME")]
+    #[arg(long, value_name = "LABEL_NAME", groups=["manual", "query"], required_unless_present_any=["text_file", "json_file", "query"])]
     #[serde(default)]
     pub labels: Option<Vec<String>>,
 
     /// Messages with certain icon(s)
-    #[arg(long, value_name = "HAS")]
+    #[arg(long, value_name = "HAS", groups=["manual", "query"], required_unless_present_any=["text_file", "json_file", "query"])]
     #[serde(default)]
     pub has: Option<Vec<String>>,
 
     /// Messages with certain mailing list(s) an email is associated with
-    #[arg(long, value_name = "LIST")]
+    #[arg(long, value_name = "LIST", groups=["manual", "query"], required_unless_present_any=["text_file", "json_file", "query"])]
     #[serde(default)]
     pub list: Option<Vec<String>>,
 
     /// Messages that contain attachment(s with a certain name(s) or filetype(s)
-    #[arg(long, value_name = "FILENAME/TYPE")]
+    #[arg(long, value_name = "FILENAME/TYPE", groups=["manual", "query"], required_unless_present_any=["text_file", "json_file", "query"])]
     #[serde(default)]
     pub filename: Option<Vec<String>>,
 
     /// Messages in certain folder(s)
-    #[arg(long, value_name = "IN")]
+    #[arg(long, value_name = "IN", groups=["manual", "query"], required_unless_present_any=["text_file", "json_file", "query"])]
     #[serde(default)]
     pub r#in: Option<Vec<String>>,
 
     /// Messages that may be starred, snoozed, unread, read, or muted
-    #[arg(long, value_name = "IS")]
+    #[arg(long, value_name = "IS", groups=["manual", "query"], required_unless_present_any=["text_file", "json_file", "query"])]
     #[serde(default)]
     pub is: Option<Vec<String>>,
 
     /// Messages found after a certain date
-    #[arg(long, value_name = "AFTER-DATE")]
+    #[arg(long, value_name = "AFTER-DATE", groups=["manual", "query"], required_unless_present_any=["text_file", "json_file", "query"])]
     #[serde(default)]
     pub after: Option<String>,
 
     /// Messages found before a certain date
-    #[arg(long, value_name = "BEFORE-DATE")]
+    #[arg(long, value_name = "BEFORE-DATE", groups=["manual", "query"], required_unless_present_any=["text_file", "json_file", "query"])]
     #[serde(default)]
     pub before: Option<String>,
 
     /// Messages older than a certain amount of time
-    #[arg(long, value_name = "OLDER-THAN")]
+    #[arg(long, value_name = "OLDER-THAN", groups=["manual", "query"], required_unless_present_any=["text_file", "json_file", "query"])]
     #[serde(default)]
     pub older_than: Option<String>,
 
     /// Messages newer than a certain amount of time
-    #[arg(long, value_name = "NEWER-THAN")]
+    #[arg(long, value_name = "NEWER-THAN", groups=["manual", "query"], required_unless_present_any=["text_file", "json_file", "query"])]
     #[serde(default)]
     pub newer_than: Option<String>,
 
     /// Messages deliver to certain address(es)
-    #[arg(long, value_name = "DELIVERED TO")]
+    #[arg(long, value_name = "DELIVERED TO", groups=["manual", "query"], required_unless_present_any=["text_file", "json_file", "query"])]
     #[serde(default)]
     pub deliveredto: Option<Vec<String>>,
 
     /// Messages given specific categorie(s)
-    #[arg(long, value_name = "CATEGORY")]
+    #[arg(long, value_name = "CATEGORY", groups=["manual", "query"], required_unless_present_any=["text_file", "json_file", "query"])]
     #[serde(default)]
     pub category: Option<Vec<String>>,
 
     /// Messages with a specific size or larger in bytes
-    #[arg(long, value_name = "SIZE")]
+    #[arg(long, value_name = "SIZE", groups=["manual", "query"], required_unless_present_any=["text_file", "json_file", "query"])]
     #[serde(default)]
     pub size: Option<usize>,
 
     /// Messages larger than a specific size in bytes
-    #[arg(long, value_name = "LARGER-THAN")]
+    #[arg(long, value_name = "LARGER-THAN", groups=["manual", "query"], required_unless_present_any=["text_file", "json_file", "query"])]
     #[serde(default)]
     pub larger: Option<usize>,
 
     /// Messages smaller than a specific size in bytes
-    #[arg(long, value_name = "SMALLER-THAN")]
+    #[arg(long, value_name = "SMALLER-THAN", groups=["manual", "query"], required_unless_present_any=["text_file", "json_file", "query"])]
     #[serde(default)]
     pub smaller: Option<usize>,
 
     /// Messages with a certain message-id header
-    #[arg(long, value_name = "RFC822MSGID")]
+    #[arg(long, value_name = "RFC822MSGID", groups=["manual", "query"], required_unless_present_any=["text_file", "json_file", "query"])]
     #[serde(default)]
     pub rfc822msgid: Option<Vec<String>>,
 
     /// Input text file to search query on authenticated email
-    #[arg(short, long, value_name = "TEXT FILE", exclusive = true)]
+    #[arg(short, long, value_name = "TEXT FILE", groups=["text_file", "query"], conflicts_with_all=["json_file", "manual"], required_unless_present_any=["query", "json_file"])]
     #[serde(default)]
-    pub text_file: Option<String>,
+    pub txt: Option<String>,
 
     /// Input json file to search query on authenticated email
-    #[arg(short, long, value_name = "JSON FILE", exclusive = true)]
+    #[arg(short, long, value_name = "JSON FILE", groups=["json_file", "query"], conflicts_with_all=["text_file", "manual"], required_unless_present_any=["text_file", "query"])]
     #[serde(default)]
-    pub json_file: Option<String>,
+    pub json: Option<String>,
 }
 
 /// Filters messages in authenticated email and outputs them in a txt file.
@@ -343,7 +342,7 @@ pub struct FilterWithOutput {
     pub filter: Filter,
 
     /// Output txt file name that contains all filtered messages
-    #[arg(short, long, value_name = "OUTPUT FILE")]
+    #[arg(short, long, value_name = "OUTPUT FILE", requires("query"))]
     pub output: String,
 
     /// The number of threads desired by the user to trash emails. Limited between 1 to 10 threads inclusive.
