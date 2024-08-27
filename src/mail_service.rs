@@ -436,7 +436,7 @@ pub async fn list_messages<'a>(
     result
 }
 
-/// Modifies the given Arc<tokio_mutex<BTreeSet>> with all email message id from label id
+/// Inserts message ids into Arc<tokio_mutex<BTreeSet>> with given label ids or filters
 pub async fn get_msg_ids_from_messages(
     hub: &Gmail<HttpsConnector<HttpConnector>>,
     label_id: Option<&str>,
@@ -454,7 +454,7 @@ pub async fn get_msg_ids_from_messages(
     let mut result = message_list.doit().await;
 
     while fetch_emails {
-        // Displays whether the result indicates a successful connection or a failed one
+        // Displays whether the result retrieved a message list or an error occurred in getting message list
         let messages = match result {
             Err(e) => {
                 println!("{}", e);
@@ -470,6 +470,7 @@ pub async fn get_msg_ids_from_messages(
             }
         }
 
+        // Keep retrieving rest of the message ids so long as there is a next page
         if let Some(page_token) = &messages.next_page_token {
             let mut message_list: UserMessageListCall<HttpsConnector<HttpConnector>> =
                 list_messages(hub, Some(page_token), filter.clone()).await;
@@ -492,6 +493,9 @@ pub async fn list_labels(
     let result = hub.users().labels_list("me").doit().await?;
     let (_res, labels_list) = result;
     let mut label_map = BTreeMap::<String, String>::default();
+
+    // for each label, insert the label name and id as key, val so that other methods can pass in
+    // label ids by label name now
     for label in labels_list.labels.as_ref().unwrap() {
         if let (Some(label_name), Some(label_id)) = (label.name.to_owned(), label.id.to_owned()) {
             label_map.insert(label_name, label_id);
@@ -678,6 +682,7 @@ pub async fn print_msgs(
                                     }
                                 }
                             }
+
                             // Grabbing description of the email
                             if let Some(parts) = payload.parts {
                                 'parts: for part in parts {
@@ -686,6 +691,7 @@ pub async fn print_msgs(
                                             if let (Some(name), Some(value)) =
                                                 (header.name, header.value)
                                             {
+                                                // Only care to get text/plain content; we don't want to grab the html code or other content in an email
                                                 if name == "Content-Type"
                                                     && value.starts_with("text/plain")
                                                 {
