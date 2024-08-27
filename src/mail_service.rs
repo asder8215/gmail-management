@@ -421,8 +421,7 @@ pub async fn list_messages<'a>(
                 let query_str = &res;
                 if filter.is_empty() {
                     result = result.max_results(0);
-                }
-                else{
+                } else {
                     // query up search with given user inputs from either text, json, or manual querying.
                     result = result.q(query_str).max_results(500);
                 }
