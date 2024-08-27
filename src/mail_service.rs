@@ -5,6 +5,7 @@ use gmail1::api::{Message, UserMessageListCall};
 use gmail1::hyper::client::HttpConnector;
 use gmail1::hyper_rustls::HttpsConnector;
 use gmail1::{hyper, hyper_rustls, oauth2, Gmail};
+use is_empty::IsEmpty;
 use lettre::message::{Attachment, Body, Mailbox, MultiPart, SinglePart};
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::Message as email;
@@ -413,13 +414,18 @@ pub async fn list_messages<'a>(
         } else if let Some(json_file) = filter.json_file.clone() {
             query_result = json_query_parse(json_file).await;
         } else {
-            query_result = query_parse(filter).await;
+            query_result = query_parse(filter.clone()).await;
         }
         match query_result {
             Ok(res) => {
                 let query_str = &res;
-                // query up search with given user inputs from either text, json, or manual querying.
-                result = result.q(query_str).max_results(500);
+                if filter.is_empty() {
+                    result = result.max_results(0);
+                }
+                else{
+                    // query up search with given user inputs from either text, json, or manual querying.
+                    result = result.q(query_str).max_results(500);
+                }
             }
             Err(e) => {
                 println!(
@@ -430,6 +436,7 @@ pub async fn list_messages<'a>(
             }
         }
     }
+
     result = result.add_scope("https://mail.google.com/");
 
     result

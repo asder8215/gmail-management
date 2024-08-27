@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand};
+use is_empty::IsEmpty;
 use serde::{self, Deserialize, Serialize};
 use std::fmt::Debug;
 
@@ -205,7 +206,7 @@ pub enum FilterCmd {
 
 /// Filters messages in authenticated email for trashing purposes
 /// See Google's "Refine searches in Gmail" for more info on email search query
-#[derive(Parser, Debug, Clone, Serialize, Deserialize)]
+#[derive(Parser, Debug, Clone, Serialize, Deserialize, IsEmpty)]
 #[serde(deny_unknown_fields)]
 pub struct Filter {
     /// Messages that contain these specific word(s) or phrase(s)
