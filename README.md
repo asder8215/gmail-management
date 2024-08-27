@@ -21,10 +21,10 @@ Note: anything with [] brackets are optionals, <> brackets are required, | symbo
     - With attachment option, you need to specify the file you want to attach to the email using the file path relative to where you run this program. 
     - For convenience, a `credentials.json` is stored locally on your PC when you login to the relay host for the first time. `credentials.json` stores the last username and password you logged in with that specific relay so that the next time you try to use the `send` command with the same relay, it's not necessary for you to put values in the --username (-u) & --password (-p) options
     - Emails details can be sent through a json file formatted with required info similarly to manually sending with the options. 
-- `filter [NUM_THREADS] [query filter]`: allows user to query a search on their gmail inbox and receive an email blurbs related to the query within desired txt file
+- `filter [NUM_THREADS] <query through options|json file with query|txt file with query>`: allows user to query a search on their gmail inbox and receive an email blurbs related to the query within desired txt file
     - See `help filter` for all query filters possible. Also see [Google's Refined Searches](https://support.google.com/mail/answer/7190?hl=en) for more detail on gmail search queries.
     - This command is multithreaded as well allowing between 1-10 threads for enqueuing and dequeuing messages to ensure fast printing of messages into a given output file.
-- `help [COMMAND]`: list all the commands provided by the program with a small blurb of what they do.
+- `help {trash {by-labels|by-msg-ids|by-filter} | send | filter | labels}`: list all the commands provided by the program with a small blurb of what they do.
     - Specifying a command (e.g. `help send`) allows users to see more information about what the command takes and what each of the options in the command are meant for.
 
 ## Future Additions
