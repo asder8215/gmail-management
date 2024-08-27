@@ -15,7 +15,7 @@ Note: anything with [] brackets are optionals, <> brackets are required, | symbo
 - `trash [NUM_THREADS] {by-labels|by-msg-ids|by-filter}`: allows user to trash all emails in specific gmail label(s), a series of message IDs, or with a query filter
     - This command is multithreaded allowing users to specify between 1-10 threads respectively for enqueuing and dequeuing messages to trash emails from their inbox. As a result, the concurrency of fetching the message ids of the email and trashing the email through Gmail API allows you to clean your inbox efficiently.
 - `labels`: allows user to see all labels within their gmail
-- `send <<FROM> <TO|CC|BCC> <SUBJECT> [DESCRIPTION] [USER] [PASS] [ATTACHMENT] | <JSON FILE>> <RELAY>`: allows user to send an email with attachments through a mail service that uses SMTP
+- `send <<FROM> <TO|CC|BCC> <SUBJECT> [DESCRIPTION] [ATTACHMENT] | <JSON FILE>> [USER] [PASS] <RELAY>`: allows user to send an email with attachments through a mail service that uses SMTP
     - In order to use gmail as your relay, you must make sure your SMTP relay service settings are configured properly. This requires you to sign in with an Google admin account. If everything is set up appropriately, your relay would be `smtp.gmail.com:587` and you would put your gmail user in the username flag & gmail password in the password flag. See [Google's SMTP routing](https://support.google.com/a/answer/2956491?hl=en) for more info.
     - Alternatively, you can use other third party mail services that send emails via SMTP using TLS (e.g. Mailtrap).
     - With attachment option, you need to specify the file you want to attach to the email using the file path relative to where you run this program. 
