@@ -27,11 +27,12 @@ use crate::ringbuffer::MultiThreadedRingBuffer;
 ///
 /// Much of this code inspired from: [Google Gmail1 Doc](https://docs.rs/google-gmail1/latest/google_gmail1/index.html)
 pub async fn create_client(
+    secret_path: String
 ) -> Result<Gmail<HttpsConnector<HttpConnector>>, Box<dyn std::error::Error>> {
     // Get an ApplicationSecret instance by some means. It contains the `client_id` and
     // `client_secret`, among other things.
 
-    let secret = oauth2::read_application_secret("./client_secret.json")
+    let secret = oauth2::read_application_secret(secret_path)
         .await
         .map_err(|e| format! {"No client_secret.json.\nError Received: {}", e})?;
 

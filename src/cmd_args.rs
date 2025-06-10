@@ -16,7 +16,7 @@ pub enum Commands {
     /// Sends an email to specified email address(es)
     Send(Box<Send>),
     /// List all labels within authenticated email
-    Labels,
+    Labels(Labels),
     /// Filters messages in authenticated email and outputs them in a txt file.
     /// See Google's "Refine searches in Gmail" for more info on email search query
     Filter(Box<FilterWithOutput>),
@@ -36,6 +36,13 @@ pub struct Trash {
         value_parser(1..11),
     )]
     pub threads_num: i64,
+    /// Path to your client_secret.json
+    #[arg(
+        short,
+        long,
+        value_name = "STRING",
+    )]
+    pub secret_path: String,
 }
 
 #[derive(Subcommand, Debug)]
@@ -43,7 +50,7 @@ pub enum TrashOptions {
     /// Trash all messages by message ids
     ByMsgIds(MsgIds),
     /// Trash all messages by label names
-    ByLabels(Labels),
+    ByLabels(LabelsOpt),
     /// Trash all messages by filter query.
     /// See Google's "Refine searches in Gmail" for more info on email search query
     ByFilter(Box<Filter>),
@@ -58,8 +65,25 @@ pub struct MsgIds {
 
 #[derive(Parser, Debug, Serialize, Deserialize)]
 pub struct Labels {
+    /// Path to your client_secret.json
+    #[arg(
+        short,
+        long,
+        value_name = "STRING",
+    )]
+    pub secret_path: String,
+}
+
+
+#[derive(Parser, Debug, Serialize, Deserialize)]
+pub struct LabelsOpt {
     /// Label names within user's email
-    #[arg(short, long, value_name = "LABEL_NAMES")]
+    #[arg(
+        short, 
+        long, 
+        value_name = "LABEL_NAMES", 
+        value_delimiter = ',',
+    )]
     pub labels: Vec<String>,
 }
 
@@ -353,4 +377,11 @@ pub struct FilterWithOutput {
         value_parser(1..11),
     )]
     pub threads: i64,
+    /// Path to your client_secret.json
+    #[arg(
+        short,
+        long,
+        value_name = "STRING",
+    )]
+    pub secret_path: String,
 }

@@ -18,13 +18,11 @@ async fn main() {
     static MSG_ID_RB: MultiThreadedRingBuffer<String, 1024> = MultiThreadedRingBuffer::new();
     let msg_id_bts: Arc<tokio_mutex<BTreeSet<Option<String>>>> =
         Arc::new(tokio_mutex::new(BTreeSet::new()));
-    let hub = mail::create_client().await.unwrap();
     let args = cmd::Args::parse();
-
-    // println!("Args: {args:?}");
 
     match args.cmds {
         Commands::Trash(trash) => {
+            let hub = mail::create_client(trash.secret_path).await.unwrap();
             // Thread reference: https://doc.rust-lang.org/std/thread/
             let mut dequerer_threads: Vec<tokio::task::JoinHandle<usize>> =
                 Vec::with_capacity((trash.threads_num).try_into().unwrap());
@@ -55,6 +53,7 @@ async fn main() {
                 }
             }
 
+            // Mutex Guards are dropped automatically when it goes out of scope
             for _ in 0..trash.threads_num {
                 let mut msg_id_bts_lock = msg_id_bts.lock().await;
                 msg_id_bts_lock.insert(None);
@@ -84,7 +83,8 @@ async fn main() {
                 Ok(_res) => {}
             };
         }
-        Commands::Labels => {
+        Commands::Labels(labels) => {
+            let hub = mail::create_client(labels.secret_path).await.unwrap();
             let labels_btreemap = mail::list_labels(&hub).await;
             if let Ok(labels_btreemap) = labels_btreemap {
                 let size = labels_btreemap.len();
@@ -101,6 +101,7 @@ async fn main() {
             }
         }
         Commands::Filter(filter) => {
+            let hub = mail::create_client(filter.secret_path).await.unwrap();
             let file_lock = Arc::new(Mutex::new(0));
             let mut dequerer_threads: Vec<tokio::task::JoinHandle<usize>> =
                 Vec::with_capacity((filter.threads).try_into().unwrap());
