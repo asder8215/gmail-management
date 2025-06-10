@@ -12,16 +12,16 @@ So learning Rust was on my mind firstly. Initially, I was going through the exer
 
 Note: anything with [] brackets are optionals, <> brackets are required, | symbols means or one of these (in `send` command, you need to at least specify a to, cc, or bcc address, but it's not necessary to use all three), {} are subcommands to the commands
 
-- `trash [NUM_THREADS] {by-labels|by-msg-ids|by-filter}`: allows user to trash all emails in specific gmail label(s), a series of message IDs, or with a query filter
+- `trash [NUM_THREADS] <SECRET_PATH> {by-labels|by-msg-ids|by-filter}`: allows user to trash all emails in specific gmail label(s), a series of message IDs, or with a query filter
     - This command is multithreaded allowing users to specify between 1-10 threads respectively for enqueuing and dequeuing messages to trash emails from their inbox. As a result, the concurrency of fetching the message ids of the email and trashing the email through Gmail API allows you to clean your inbox efficiently.
-- `labels`: allows user to see all labels within their gmail
+- `labels <SECRET_PATH>`: allows user to see all labels within their gmail
 - `send <<FROM> <TO|CC|BCC> <SUBJECT> [DESCRIPTION] [ATTACHMENT] | <JSON FILE>> [USER] [PASS] <RELAY>`: allows user to send an email with attachments through a mail service that uses SMTP
     - In order to use gmail as your relay, you must make sure your SMTP relay service settings are configured properly. This requires you to sign in with an Google admin account. If everything is set up appropriately, your relay would be `smtp.gmail.com:587` and you would put your gmail user in the username flag & gmail password in the password flag. See [Google's SMTP routing](https://support.google.com/a/answer/2956491?hl=en) for more info.
     - Alternatively, you can use other third party mail services that send emails via SMTP using TLS (e.g. Mailtrap).
     - With attachment option, you need to specify the file you want to attach to the email using the file path relative to where you run this program. 
     - For convenience, a `credentials.json` is stored locally on your PC when you login to the relay host for the first time. `credentials.json` stores the last username and password you logged in with that specific relay so that the next time you try to use the `send` command with the same relay, it's not necessary for you to put values in the --username (-u) & --password (-p) options
     - Emails details can be sent through a json file formatted with required info similarly to manually sending with the options. 
-- `filter [NUM_THREADS] <query through options|json file with query|txt file with query>`: allows user to query a search on their gmail inbox and receive an email blurbs related to the query within desired txt file
+- `filter [NUM_THREADS] <SECRET_PATH> <query through options|json file with query|txt file with query>`: allows user to query a search on their gmail inbox and receive an email blurbs related to the query within desired txt file
     - See `help filter` for all query filters possible. Also see [Google's Refined Searches](https://support.google.com/mail/answer/7190?hl=en) for more detail on gmail search queries.
     - This command is multithreaded as well allowing between 1-10 threads for enqueuing and dequeuing messages to ensure fast printing of messages into a given output file.
 - `help {trash {by-labels|by-msg-ids|by-filter} | send | filter | labels}`: list all the commands provided by the program with a small blurb of what they do.
@@ -44,6 +44,40 @@ You may want to also put the Google Cloud Platform project from testing into pro
 Run `cargo build` to build the project and `cargo run -- [command]` to run the project.
 
 If this error, `“failed to run custom build command for aws-lc-sys”` occurs, it's possible that you may need to install `nasm` & `cmake`. If so, you can follow this [Medium article](https://medium.com/@rrnazario/rust-how-to-fix-failed-to-run-custom-build-command-for-aws-lc-sys-on-windows-c3bd2405ac6f) in order to fix the issue.
+
+## Task Scheduling This Program
+
+On Windows, you could open the 'Task Scheduler' application and create a new task that could be ran in the background daily. Currently, that's what I'm doing with my gmail management program to automate trashing certain emails off my inbox. I set the target script for task to `gmail-management.exe` (this is within the `/target/debug/` folder when you run `cargo build`)
+
+<p align="center">
+<img src="./readme_imgs/Task_Scheduler_Screen.png" width="60%" height="60%">
+<br>
+Task Scheduler Application Screen (Click on Create Task on Top Right)
+</p>
+
+<p align="center">
+<img src="./readme_imgs/Create_Task.png" width="60%" height="60%">
+<br>
+Create Task Screen 
+</p>
+
+<p align="center">
+<img src="./readme_imgs/Trigger_Screen.png" width="60%" height="60%">
+<br>
+Trigger Screen (assign time schedule for program to run)
+</p>
+
+<p align="center">
+<img src="./readme_imgs/Action_Screen.png" width="60%" height="60%">
+<br>
+Action Screen (click on New Action)
+</p>
+
+<p align="center">
+<img src="./readme_imgs/New_Action_Screen.png" width="60%" height="60%">
+<br>
+New Action Screen (can browse for gmail-management.exe and then provide it all the arguments needed to automate trashing, sending, or logging emails)
+</p>
 
 ## Contribution
 
