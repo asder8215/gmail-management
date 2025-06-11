@@ -67,7 +67,7 @@ Create Task Screen
 <p align="center">
 <img src="./readme_imgs/Trigger_Screen.png" width="60%" height="60%">
 <br>
-Trigger Screen (assign time schedule for program to run)
+Trigger Screen (assign time schedule for program to run, also assign a delay for 1 minute to quickly authenticate the Task Scheduler so that it's able to perform operations on your Gmail)
 </p>
 
 <p align="center">
