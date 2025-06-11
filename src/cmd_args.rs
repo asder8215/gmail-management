@@ -43,6 +43,13 @@ pub struct Trash {
         value_name = "STRING",
     )]
     pub secret_path: String,
+    /// Path to cache token in tokencache.json
+    #[arg(
+        short,
+        long,
+        value_name = "STRING",
+    )]
+    pub disk_token_path: String,
 }
 
 #[derive(Subcommand, Debug)]
@@ -72,6 +79,13 @@ pub struct Labels {
         value_name = "STRING",
     )]
     pub secret_path: String,
+    /// Path to cache token in tokencache.json
+    #[arg(
+        short,
+        long,
+        value_name = "STRING",
+    )]
+    pub disk_token_path: String,
 }
 
 
@@ -384,4 +398,11 @@ pub struct FilterWithOutput {
         value_name = "STRING",
     )]
     pub secret_path: String,
+    /// Path to cache token in tokencache.json
+    #[arg(
+        short,
+        long,
+        value_name = "STRING",
+    )]
+    pub disk_token_path: String,
 }

@@ -27,7 +27,8 @@ use crate::ringbuffer::MultiThreadedRingBuffer;
 ///
 /// Much of this code inspired from: [Google Gmail1 Doc](https://docs.rs/google-gmail1/latest/google_gmail1/index.html)
 pub async fn create_client(
-    secret_path: String
+    secret_path: String,
+    token_path: String,
 ) -> Result<Gmail<HttpsConnector<HttpConnector>>, Box<dyn std::error::Error>> {
     // Get an ApplicationSecret instance by some means. It contains the `client_id` and
     // `client_secret`, among other things.
@@ -44,7 +45,7 @@ pub async fn create_client(
         secret,
         oauth2::InstalledFlowReturnMethod::HTTPRedirect,
     )
-    .persist_tokens_to_disk("./tokencache.json")
+    .persist_tokens_to_disk(token_path)
     .build()
     .await?;
 
@@ -64,7 +65,7 @@ pub async fn create_client(
         .doit()
         .await?;
 
-    println!("Successful authenticated connection\n");
+    println!("Successful authenticated connection");
 
     Ok(hub)
 }
@@ -78,7 +79,7 @@ pub async fn get_message(
     let result = hub
         .users()
         .messages_get("me", msg_id)
-        .add_scope("https://mail.google.com/")
+        // .add_scope("https://mail.google.com/")
         .doit()
         .await?;
 
