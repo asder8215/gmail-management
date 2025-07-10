@@ -1,7 +1,6 @@
 extern crate google_gmail1 as gmail1;
 pub mod cmd_args;
 pub mod mail_service;
-pub mod ringbuffer;
 
 use clap::Parser;
 use cmd_args::{self as cmd, Commands};
@@ -16,13 +15,12 @@ use tokio::sync::Mutex as tokio_mutex;
 // #[tokio::main]
 // async fn main() {
 fn main() {
-    // static msg_id_rb: MultiThreadedRingBuffer<String, 1024> = MultiThreadedRingBuffer::new();
-    // let msg_id_rb:LFShardedRingBuf<String> = LFShardedRingBuf::new(1024, 8);
+
+    // use this BTreeSet as a Stream for enqueuers
     let msg_id_bts: Arc<tokio_mutex<BTreeSet<Option<String>>>> =
         Arc::new(tokio_mutex::new(BTreeSet::new()));
     let args = cmd::Args::parse();
 
-    // let msg_id_rb:LFShardedRingBuf<String> = LFShardedRingBuf::new(1024,);
     match args.cmds {
         Commands::Trash(trash) => {
             // building runtime with only the requested number of threads
@@ -41,8 +39,8 @@ fn main() {
                     .await
                     .unwrap()
             });
-            // Thread reference: https://doc.rust-lang.org/std/thread/
 
+            // Thread reference: https://doc.rust-lang.org/std/thread/
             let mut dequeuer_threads = Vec::with_capacity((trash.threads_num).try_into().unwrap());
             let mut enqueuer_threads = Vec::with_capacity((trash.threads_num).try_into().unwrap());
 
