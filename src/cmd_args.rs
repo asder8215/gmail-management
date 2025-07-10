@@ -37,18 +37,10 @@ pub struct Trash {
     )]
     pub threads_num: i64,
     /// Path to your client_secret.json
-    #[arg(
-        short,
-        long,
-        value_name = "STRING",
-    )]
+    #[arg(short, long, value_name = "STRING")]
     pub secret_path: String,
     /// Path to cache token in tokencache.json
-    #[arg(
-        short,
-        long,
-        value_name = "STRING",
-    )]
+    #[arg(short, long, value_name = "STRING")]
     pub disk_token_path: String,
 }
 
@@ -73,31 +65,17 @@ pub struct MsgIds {
 #[derive(Parser, Debug, Serialize, Deserialize)]
 pub struct Labels {
     /// Path to your client_secret.json
-    #[arg(
-        short,
-        long,
-        value_name = "STRING",
-    )]
+    #[arg(short, long, value_name = "STRING")]
     pub secret_path: String,
     /// Path to cache token in tokencache.json
-    #[arg(
-        short,
-        long,
-        value_name = "STRING",
-    )]
+    #[arg(short, long, value_name = "STRING")]
     pub disk_token_path: String,
 }
-
 
 #[derive(Parser, Debug, Serialize, Deserialize)]
 pub struct LabelsOpt {
     /// Label names within user's email
-    #[arg(
-        short, 
-        long, 
-        value_name = "LABEL_NAMES", 
-        value_delimiter = ',',
-    )]
+    #[arg(short, long, value_name = "LABEL_NAMES", value_delimiter = ',')]
     pub labels: Vec<String>,
 }
 
@@ -392,17 +370,9 @@ pub struct FilterWithOutput {
     )]
     pub threads: i64,
     /// Path to your client_secret.json
-    #[arg(
-        short,
-        long,
-        value_name = "STRING",
-    )]
+    #[arg(short, long, value_name = "STRING")]
     pub secret_path: String,
     /// Path to cache token in tokencache.json
-    #[arg(
-        short,
-        long,
-        value_name = "STRING",
-    )]
+    #[arg(short, long, value_name = "STRING")]
     pub disk_token_path: String,
 }

@@ -9,6 +9,7 @@ use lettre::message::{Attachment, Body, Mailbox, MultiPart, SinglePart};
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::Message as email;
 use lettre::{SmtpTransport, Transport};
+use lf_shardedringbuf::LFShardedRingBuf;
 use serde_json::json;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{self, read, read_to_string, File, OpenOptions};
@@ -18,7 +19,6 @@ use std::sync::{Arc, Mutex};
 use tokio::sync::Mutex as tokio_mutex;
 
 use crate::cmd_args::{Filter, Send, SendInfo};
-use crate::ringbuffer::MultiThreadedRingBuffer;
 
 /// Attempts to authenticate and connect to user's email; returns the connected client on success
 /// Need to create a service account on Google Cloud Platform Console and put the client id in a client_secret.json
@@ -27,8 +27,8 @@ use crate::ringbuffer::MultiThreadedRingBuffer;
 ///
 /// Much of this code inspired from: [Google Gmail1 Doc](https://docs.rs/google-gmail1/latest/google_gmail1/index.html)
 pub async fn create_client(
-    secret_path: String,
-    token_path: String,
+    secret_path: &String,
+    token_path: &String,
 ) -> Result<Gmail<HttpsConnector<HttpConnector>>, Box<dyn std::error::Error>> {
     // Get an ApplicationSecret instance by some means. It contains the `client_id` and
     // `client_secret`, among other things.
@@ -93,7 +93,7 @@ pub async fn get_message(
 /// Storing and using credentials inspired by this [Stackoverflow post](https://stackoverflow.com/questions/30292752/how-do-i-parse-a-json-file)
 ///
 /// mime_guess library used to have a flexible way of resolving content-type of the attachments to an email
-pub async fn send_message(
+pub fn send_message(
     send: Send,
     json_file: Option<String>,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -399,7 +399,7 @@ async fn json_query_parse(json_file_path: String) -> Result<String, Box<dyn std:
 pub async fn list_messages<'a>(
     hub: &'a Gmail<HttpsConnector<HttpConnector>>,
     page_token: Option<&'a String>,
-    filter: Option<Filter>,
+    filter: Option<&Filter>,
 ) -> UserMessageListCall<'a, HttpsConnector<HttpConnector>> {
     let mut result = hub.users().messages_list("me");
 
@@ -442,7 +442,7 @@ pub async fn list_messages<'a>(
 pub async fn get_msg_ids_from_messages(
     hub: &Gmail<HttpsConnector<HttpConnector>>,
     label_id: Option<&str>,
-    filter: Option<Filter>,
+    filter: Option<&Filter>,
     msg_id_bts: Arc<tokio_mutex<BTreeSet<Option<String>>>>,
 ) {
     let mut fetch_emails: bool = true;
@@ -559,11 +559,12 @@ pub async fn add_msg_ids_from_ids(
     }
 }
 
-/// Dequerer threads in the trash command utilize this method to grab the msg id
+/// dequeuer threads in the trash command utilize this method to grab the msg id
 /// from the ring buffer and trash it
 pub async fn trash_msgs(
     hub: &Gmail<HttpsConnector<HttpConnector>>,
-    msg_id_rb: &MultiThreadedRingBuffer<String>,
+    // msg_id_rb: &MultiThreadedRingBuffer<String>,
+    msg_id_rb: &Arc<LFShardedRingBuf<String>>,
 ) -> usize {
     let mut counter: usize = 0;
     loop {
@@ -589,11 +590,12 @@ pub async fn trash_msgs(
     counter
 }
 
-/// Enquerer threads from the trash command use this method to fetch msg ids
+/// enqueuer threads from the trash command use this method to fetch msg ids
 /// as it's being added to the BTS and enqueues it to the ring buffer
 pub async fn add_msgs(
     msg_ids: Arc<tokio_mutex<BTreeSet<Option<String>>>>,
-    msg_id_rb: &MultiThreadedRingBuffer<String>,
+    // msg_id_rb: &MultiThreadedRingBuffer<String>,
+    msg_id_rb: &Arc<LFShardedRingBuf<String>>,
 ) -> usize {
     let mut counter: usize = 0;
 
@@ -603,6 +605,7 @@ pub async fn add_msgs(
         match msg_id_bts_lock.pop_first() {
             Some(msg_id) => {
                 // enqueue the msg_id
+                drop(msg_id_bts_lock); // can drop lock because safely got item
                 if let Some(msg_id) = msg_id {
                     counter += 1;
                     msg_id_rb.enqueue(msg_id).await;
@@ -621,11 +624,12 @@ pub async fn add_msgs(
     counter
 }
 
-/// Dequerer threads in the filter command utilize this method to grab the msg id
+/// dequeuer threads in the filter command utilize this method to grab the msg id
 /// from the ring buffer and get message content to write to output txt file
 pub async fn print_msgs(
     hub: &Gmail<HttpsConnector<HttpConnector>>,
-    msg_id_rb: &MultiThreadedRingBuffer<String>,
+    // msg_id_rb: &MultiThreadedRingBuffer<String>,
+    msg_id_rb: &Arc<LFShardedRingBuf<String>>,
     output_file: String,
     file_lock: Arc<Mutex<i32>>,
 ) -> usize {
